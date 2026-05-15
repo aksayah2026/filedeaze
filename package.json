@@ -1,0 +1,37 @@
+{
+  "name": "fieldeaze-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "turbo": "latest",
+    "prettier": "^3.0.0"
+  },
+  "packageManager": "npm@10.2.4",
+  "version": "1.0.0",
+  "description": "FieldEaze is a production-ready, full-stack field service management system built with modern technologies.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aksayah2026/filedeaze.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/aksayah2026/filedeaze/issues"
+  },
+  "homepage": "https://github.com/aksayah2026/filedeaze#readme"
+}
