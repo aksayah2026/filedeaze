@@ -22,8 +22,8 @@ export const ticketService = {
     return response.data;
   },
 
-  assignTechnician: async (id: string, technicianId: string) => {
-    const response = await axiosInstance.patch<Ticket>(`/tickets/${id}/assign/${technicianId}`);
+  assignTechnician: async (ticketId: string, technicianId: string) => {
+    const response = await axiosInstance.post<Ticket>('/tickets/assign', { ticketId, technicianId });
     return response.data;
   },
 };

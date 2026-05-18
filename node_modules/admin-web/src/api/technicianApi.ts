@@ -3,18 +3,27 @@ import { ApiResponse, User, TechnicianLocation } from '../types';
 
 export const technicianApi = {
   getAll: async () => {
-    // Backend findByRole("TECHNICIAN") logic
-    const response = await axiosInstance.get<ApiResponse<User[]>>('/private/users', { params: { role: 'TECHNICIAN' } });
+    const response = await axiosInstance.get<ApiResponse<User[]>>('/technicians');
     return response.data;
   },
   
   create: async (data: Partial<User>) => {
-    const response = await axiosInstance.post<ApiResponse<User>>('/private/users', { ...data, role: 'TECHNICIAN' });
+    const response = await axiosInstance.post<ApiResponse<User>>('/technicians', data);
     return response.data;
   },
   
   getDetails: async (id: string) => {
-    const response = await axiosInstance.get<ApiResponse<User>>(`/private/users/${id}`);
+    const response = await axiosInstance.get<ApiResponse<User>>(`/technicians/${id}`);
+    return response.data;
+  },
+
+  update: async (id: string, data: Partial<User>) => {
+    const response = await axiosInstance.put<ApiResponse<User>>(`/technicians/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: string) => {
+    const response = await axiosInstance.delete<ApiResponse<any>>(`/technicians/${id}`);
     return response.data;
   },
   

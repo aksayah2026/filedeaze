@@ -1,19 +1,43 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Loader2, UserPlus, Mail, Phone, Lock, Briefcase, MapPin, Star, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { technicianApi } from "@/api/technicianApi";
 import toast from "react-hot-toast";
+import { useQueryClient } from "react-query";
 
-export function CreateTechnicianModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClose: () => void, onSuccess: () => void }) {
+const renderSkills = (skills: any) => {
+  if (!skills) return "";
+  if (Array.isArray(skills)) {
+    return skills.map((s: any) => (typeof s === 'object' ? s.skillName || s.name : s)).join(', ');
+  }
+  return String(skills);
+};
+
+export function EditTechnicianModal({ isOpen, onClose, onSuccess, technician }: { isOpen: boolean, onClose: () => void, onSuccess: () => void, technician: any }) {
   const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+
   const [formData, setFormData] = useState({
     username: "",
     email: "",
-    password: "",
     phone: "",
     experienceYears: "0",
-    skills: ""
+    skills: "",
+    enabled: true
   });
+
+  useEffect(() => {
+    if (technician && isOpen) {
+      setFormData({
+        username: technician.username || "",
+        email: technician.email || "",
+        phone: technician.phone || technician.phoneNumber || "",
+        experienceYears: String(technician.experienceYears || technician.experience || 0),
+        skills: renderSkills(technician.skills || technician.technicianSkills),
+        enabled: technician.enabled !== false
+      });
+    }
+  }, [technician, isOpen]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -28,27 +52,33 @@ export function CreateTechnicianModal({ isOpen, onClose, onSuccess }: { isOpen: 
         .map(s => ({
           skillName: s.trim(),
           experienceYears: parseInt(formData.experienceYears) || 0,
-          proficiencyLevel: 3
+          proficiencyLevel: 4
         }));
 
       const payload = {
-        ...formData,
+        name: formData.username,
+        phoneNumber: formData.phone,
         experienceYears: parseInt(formData.experienceYears) || 0,
-        skills: skillsArray,
-        address: []
+        technicianSkills: skillsArray,
+        enabled: formData.enabled
       };
-      await technicianApi.create(payload);
-      toast.success("Technician created successfully!");
+
+      console.log("Update Payload:", payload);
+      const response = await technicianApi.update(technician.userId, payload);
+      console.log("Update API Response:", response);
+      toast.success("Technician updated successfully!");
+      queryClient.invalidateQueries(["technician", technician.userId]);
+      queryClient.invalidateQueries(["technicians"]);
       onSuccess();
       onClose();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to create technician");
+      toast.error(error.response?.data?.message || "Failed to update technician");
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !technician) return null;
 
   return (
     <AnimatePresence>
@@ -67,9 +97,9 @@ export function CreateTechnicianModal({ isOpen, onClose, onSuccess }: { isOpen: 
           <div className="flex justify-between items-center p-6 border-b border-white/5 bg-white/[0.02]">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-sky-500/20 text-sky-400 rounded-xl">
-                <UserPlus className="w-5 h-5" />
+                <Briefcase className="w-5 h-5" />
               </div>
-              <h2 className="text-xl font-bold text-white">Register Technician</h2>
+              <h2 className="text-xl font-bold text-white">Edit Technician</h2>
             </div>
             <button onClick={onClose} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all">
               <X className="w-5 h-5" />
@@ -103,14 +133,6 @@ export function CreateTechnicianModal({ isOpen, onClose, onSuccess }: { isOpen: 
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input required type="password" name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/50" />
-                </div>
-              </div>
-
-              <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Experience (Years)</label>
                 <div className="relative">
                   <Star className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -119,6 +141,16 @@ export function CreateTechnicianModal({ isOpen, onClose, onSuccess }: { isOpen: 
               </div>
 
               <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status</label>
+                <div className="flex items-center gap-3 h-[42px] bg-white/5 border border-white/10 rounded-xl px-4">
+                  <input type="checkbox" id="enabledStatus" name="enabled" checked={formData.enabled} onChange={(e) => setFormData(prev => ({ ...prev, enabled: e.target.checked }))} className="w-4 h-4 accent-sky-500 rounded bg-white/10 border-white/20" />
+                  <label htmlFor="enabledStatus" className="text-sm font-medium text-white cursor-pointer select-none">
+                    {formData.enabled ? 'Active Account' : 'Inactive Account'}
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Skills (Comma separated)</label>
                 <div className="relative">
                   <Zap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -131,7 +163,7 @@ export function CreateTechnicianModal({ isOpen, onClose, onSuccess }: { isOpen: 
               <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-xl font-bold text-slate-300 hover:bg-white/5 transition-all">Cancel</button>
               <button type="submit" disabled={loading} className="px-5 py-2.5 rounded-xl font-bold bg-sky-500 text-white hover:bg-sky-400 shadow-lg shadow-sky-500/20 transition-all flex items-center gap-2">
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                {loading ? 'Creating...' : 'Register Technician'}
+                {loading ? 'Updating...' : 'Update Technician'}
               </button>
             </div>
           </form>

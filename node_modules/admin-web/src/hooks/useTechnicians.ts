@@ -1,10 +1,10 @@
 import { useQuery } from 'react-query';
 import { technicianApi } from '../api/technicianApi';
+import { extractApiData } from '../lib/utils';
 
 export const useTechnicians = () => {
   return useQuery('technicians', technicianApi.getAll, {
-    // UserController returns paginated: { content: [], totalElements, ... }
-    select: (response) => response.data?.content ?? response.data ?? [],
+    select: extractApiData,
   });
 };
 

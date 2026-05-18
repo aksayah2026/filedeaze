@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { ticketApi } from '../api/ticketApi';
 import { attachmentApi } from '../api/attachmentApi';
 import { socketService } from '../sockets/socketService';
+import { extractApiData } from '../lib/utils';
 
 export const useTickets = (filters?: any) => {
   const queryClient = useQueryClient();
@@ -27,10 +28,7 @@ export const useTickets = (filters?: any) => {
   }, [queryClient]);
 
   return useQuery(['tickets', filters], () => ticketApi.getAll(filters), {
-    select: (response) => {
-      const raw = response.data?.content ?? response.data ?? [];
-      return Array.isArray(raw) ? raw : [];
-    },
+    select: extractApiData,
     refetchInterval: 30000, // poll every 30s as fallback
     staleTime: 10000,
     retry: 2,

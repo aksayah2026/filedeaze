@@ -11,42 +11,12 @@ class SocketService {
   async connect(): Promise<void> {
     if (this.client?.connected || this.isConnecting) return;
     this.isConnecting = true;
-
-    return new Promise((resolve, reject) => {
-      try {
-        this.client = new Client({
-          webSocketFactory: () => new SockJS(SOCKET_URL),
-          debug: (str) => {
-            if (import.meta.env.DEV) console.log('[STOMP]', str);
-          },
-          reconnectDelay: 5000,
-          heartbeatIncoming: 4000,
-          heartbeatOutgoing: 4000,
-        });
-
-        this.client.onConnect = (frame) => {
-          this.isConnecting = false;
-          console.log('WebSocket Connected');
-          resolve();
-        };
-
-        this.client.onStompError = (frame) => {
-          this.isConnecting = false;
-          console.error('STOMP Error:', frame.headers['message']);
-          reject(new Error(frame.headers['message']));
-        };
-
-        this.client.onWebSocketError = (event) => {
-          this.isConnecting = false;
-          console.error('WebSocket Transport Error:', event);
-          reject(event);
-        };
-
-        this.client.activate();
-      } catch (err) {
-        this.isConnecting = false;
-        reject(err);
-      }
+    
+    // TEMPORARY: Disabled WebSocket connection to prevent crashes and MIME type mismatch
+    return new Promise((resolve) => {
+      console.log('WebSocket Connection Disabled. Using REST APIs only.');
+      this.isConnecting = false;
+      resolve();
     });
   }
 

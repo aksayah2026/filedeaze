@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn, extractApiData } from "@/lib/utils";
 import { useTickets, useTicketAttachments, useAssignTechnician } from "../hooks/useTickets";
 import { useTechnicians } from "../hooks/useTechnicians";
 import { skillApi } from "../api/skillApi";
@@ -167,14 +167,19 @@ function AttachmentGallery({ ticketId }: { ticketId: string }) {
 
 // --- Main Tickets Page ---
 export function Tickets() {
-  const { data: tickets = [], isLoading: ticketsLoading, error: ticketsError } = useTickets();
-  const { data: technicians = [], isLoading: techLoading } = useTechnicians();
+  const rawTickets = useTickets();
+  const rawTechnicians = useTechnicians();
+  const tickets = extractApiData(rawTickets.data);
+  const technicians = extractApiData(rawTechnicians.data);
+  const ticketsLoading = rawTickets.isLoading;
+  const techLoading = rawTechnicians.isLoading;
+  const ticketsError = rawTickets.error;
   const { mutate: doAssign, isLoading: assigning } = useAssignTechnician();
 
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredTickets = tickets.filter(t =>
+  const filteredTickets = (Array.isArray(tickets) ? tickets : []).filter((t: any) =>
     !searchQuery ||
     String(t.requestId || t.id).includes(searchQuery) ||
     (t.address || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -296,7 +301,7 @@ export function Tickets() {
                           </span>
                         </div>
                         <p className="text-sm font-bold text-white line-clamp-2 mb-3 leading-snug">
-                          {ticket.services?.length ? ticket.services.map(s => s.serviceName).join(', ') : ticket.description || 'No description'}
+                          {ticket?.services?.length ? ticket.services.map(s => s?.title || s?.serviceName).join(', ') : ticket?.service?.title || ticket?.description || 'No description'}
                         </p>
                         <div className="flex items-center justify-between pt-3 border-t border-white/5">
                           <div className="flex items-center gap-1.5 text-xs text-slate-400">
@@ -333,7 +338,7 @@ export function Tickets() {
               <div className="flex justify-between items-start mb-5">
                 <div>
                   <h3 className="text-xl font-bold text-white mb-1">
-                    {selectedTicket.services?.length ? selectedTicket.services.map(s => s.serviceName).join(', ') : 'Ticket Detail'}
+                    {selectedTicket?.services?.length ? selectedTicket.services.map(s => s?.title || s?.serviceName).join(', ') : selectedTicket?.service?.title || 'Ticket Detail'}
                   </h3>
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-sky-400 font-bold">#FE-{selectedId?.slice(0, 6)}</span>
@@ -368,7 +373,7 @@ export function Tickets() {
                           : <div className="w-10 h-10 rounded-lg bg-sky-500/20 flex items-center justify-center"><Zap className="w-5 h-5 text-sky-500" /></div>
                         }
                         <div>
-                          <p className="text-sm font-bold text-white">{s.serviceName}</p>
+                          <p className="text-sm font-bold text-white">{s?.title || s?.serviceName}</p>
                           {s.description && <p className="text-xs text-slate-400 line-clamp-1">{s.description}</p>}
                         </div>
                       </div>
@@ -390,7 +395,7 @@ export function Tickets() {
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center"><User className="w-4 h-4 text-purple-400" /></div>
                     <div>
-                      <p className="text-sm font-bold text-white">{selectedTicket.customer?.username || 'Unknown'}</p>
+                      <p className="text-sm font-bold text-white">{selectedTicket?.customer?.name || selectedTicket?.customer?.username || 'Unknown'}</p>
                       <p className="text-xs text-slate-400 flex items-center gap-1">
                         <Phone className="w-3 h-3" />
                         {selectedTicket.customer?.phoneNumber || 'N/A'}
@@ -418,7 +423,7 @@ export function Tickets() {
                       alt={selectedTicket.assignedTechnician.username}
                     />
                     <div>
-                      <p className="text-sm font-bold text-white">{selectedTicket.assignedTechnician.username}</p>
+                      <p className="text-sm font-bold text-white">{selectedTicket?.technician?.name || selectedTicket?.assignedTechnician?.username}</p>
                       <p className="text-xs text-purple-400">{selectedTicket.assignedTechnician.email}</p>
                     </div>
                   </div>
@@ -446,9 +451,9 @@ export function Tickets() {
           <div className="flex-1 overflow-y-auto custom-scrollbar px-2 space-y-3 pb-4">
             {techLoading
               ? <QueueSkeleton />
-              : technicians.length === 0
+              : (Array.isArray(technicians) ? technicians : []).length === 0
                 ? <div className="text-center py-10"><p className="text-slate-500 text-sm">No technicians registered.</p></div>
-                : technicians.map(tech => (
+                : (Array.isArray(technicians) ? technicians : []).map((tech: any) => (
                     <TechnicianCard
                       key={tech.userId}
                       tech={tech}

@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios';
+import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
@@ -27,6 +28,7 @@ axiosInstance.interceptors.response.use(
   (response) => {
     // Backend sends HTTP 200 with statusCode 401 in body for auth errors
     const data = response.data;
+    console.log('[Axios Response Data]:', data); // Added logging as requested
     if (data && data.statusCode === 401 && !response.config.url?.includes('/auth/')) {
       console.warn('[Axios] Body-level 401 detected for:', response.config.url);
       // Attempt token refresh
@@ -43,7 +45,15 @@ axiosInstance.interceptors.response.use(
       return handleTokenRefresh(originalRequest);
     }
 
+    // HTTP-level 403 Forbidden
+    if (error.response?.status === 403) {
+      const msg = (error.response?.data as any)?.message || 'Access Denied: You do not have permission to view this resource.';
+      toast.error(msg);
+      return Promise.reject(new Error(msg));
+    }
+
     const message = (error.response?.data as any)?.message || error.message || 'An unexpected error occurred';
+    toast.error(message);
     return Promise.reject(new Error(message));
   }
 );

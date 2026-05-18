@@ -1,9 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { useCustomers } from "../hooks/useCustomers";
+import { extractApiData } from "@/lib/utils";
 import { User, Loader2, Mail, Phone, Calendar } from "lucide-react";
 
 export function Customers() {
-  const { data: customers, isLoading } = useCustomers();
+  const rawCustomers = useCustomers();
+  const customers = extractApiData(rawCustomers.data);
+  const isLoading = rawCustomers.isLoading;
 
   if (isLoading) {
     return (
@@ -26,7 +29,7 @@ export function Customers() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {customers?.map((customer) => (
+        {(Array.isArray(customers) ? customers : []).map((customer: any) => (
           <Card key={customer.userId} className="bg-[#0f172a]/40 backdrop-blur-sm border-white/5 rounded-[2.5rem] group hover:border-sky-500/40 transition-all duration-300 overflow-hidden">
             <CardContent className="p-0">
               <div className="p-8">

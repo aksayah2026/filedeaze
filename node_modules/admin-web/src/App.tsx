@@ -6,9 +6,11 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { Tickets } from "./pages/Tickets";
 import { LiveTracking } from "./pages/Tracking";
 import { Technicians } from "./pages/Technicians";
+import { TechnicianProfile } from "./pages/TechnicianProfile";
 import { Customers } from "./pages/Customers";
 import { Analytics } from "./pages/Analytics";
 import { Settings } from "./pages/Settings";
+import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 
 function App() {
   return (
@@ -17,11 +19,12 @@ function App() {
         <Route path="/login" element={<Login />} />
         
         <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']} />}>
-          <Route path="/" element={<Layout />}>
+          <Route path="/" element={<ErrorBoundary><Layout /></ErrorBoundary>}>
             <Route index element={<Dashboard />} />
             <Route path="tickets" element={<Tickets />} />
             <Route path="tracking" element={<LiveTracking />} />
             <Route path="technicians" element={<Technicians />} />
+            <Route path="technicians/:id" element={<TechnicianProfile />} />
             <Route path="customers" element={<Customers />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="sla" element={<div>SLA Monitoring</div>} />
