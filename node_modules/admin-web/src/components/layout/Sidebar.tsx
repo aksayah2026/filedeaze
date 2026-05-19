@@ -25,7 +25,6 @@ const menuItems = [
 ];
 
 const bottomItems = [
-  { icon: ShieldCheck, label: "Role Management", path: "/roles" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
 

@@ -10,17 +10,19 @@ import { useQuery } from "react-query";
 import {
   Loader2, Search, Filter, Zap, Clock, MapPin,
   User, CheckCircle2, Navigation, AlertCircle, Phone,
-  Star, TrendingUp, ShieldCheck, Paperclip, Eye, Image as ImageIcon
+  Star, TrendingUp, ShieldCheck, Paperclip, Eye, Image as ImageIcon,
+  FileText, Download
 } from "lucide-react";
 import toast from "react-hot-toast";
 
 const statusColors: Record<string, { bg: string; text: string; border: string }> = {
-  OPEN:        { bg: "bg-sky-500/10",     text: "text-sky-500",     border: "border-sky-500/20"     },
-  PENDING:     { bg: "bg-sky-500/10",     text: "text-sky-500",     border: "border-sky-500/20"     },
-  ASSIGNED:    { bg: "bg-purple-500/10",  text: "text-purple-500",  border: "border-purple-500/20"  },
-  IN_PROGRESS: { bg: "bg-amber-500/10",   text: "text-amber-500",   border: "border-amber-500/20"   },
-  COMPLETED:   { bg: "bg-emerald-500/10", text: "text-emerald-500", border: "border-emerald-500/20" },
-  CANCELLED:   { bg: "bg-red-500/10",     text: "text-red-500",     border: "border-red-500/20"     },
+  OPEN:                  { bg: "bg-sky-500/10",     text: "text-sky-500",     border: "border-sky-500/20"     },
+  PENDING:               { bg: "bg-sky-500/10",     text: "text-sky-500",     border: "border-sky-500/20"     },
+  AWAITING_CONFIRMATION: { bg: "bg-sky-500/10",     text: "text-sky-500",     border: "border-sky-500/20"     },
+  ASSIGNED:              { bg: "bg-purple-500/10",  text: "text-purple-500",  border: "border-purple-500/20"  },
+  IN_PROGRESS:           { bg: "bg-amber-500/10",   text: "text-amber-500",   border: "border-amber-500/20"   },
+  COMPLETED:             { bg: "bg-emerald-500/10", text: "text-emerald-500", border: "border-emerald-500/20" },
+  CANCELLED:             { bg: "bg-red-500/10",     text: "text-red-500",     border: "border-red-500/20"     },
 };
 
 const priorityIcon = { CRITICAL: AlertCircle, HIGH: TrendingUp, MEDIUM: Zap, LOW: CheckCircle2 };
@@ -124,6 +126,26 @@ function AttachmentGallery({ ticketId }: { ticketId: string }) {
   );
   if (!attachments.length) return null;
 
+  // Filter image attachments for the preview modal
+  const imageAttachments = attachments.filter((att: any) => {
+    const isImgType = att.fileType === 'IMAGE';
+    const isImgExt = att.fileUrl && /\.(jpg|jpeg|png|webp|gif)$/i.test(att.fileUrl);
+    return isImgType || isImgExt;
+  });
+
+  const handleAttachmentClick = (att: any) => {
+    const isImgType = att.fileType === 'IMAGE';
+    const isImgExt = att.fileUrl && /\.(jpg|jpeg|png|webp|gif)$/i.test(att.fileUrl);
+    if (isImgType || isImgExt) {
+      const imgIdx = imageAttachments.findIndex((i: any) => i.id === att.id);
+      if (imgIdx !== -1) {
+        setPreviewIdx(imgIdx);
+      }
+    } else {
+      window.open(attachmentApi.getFullUrl(att.fileUrl), '_blank');
+    }
+  };
+
   return (
     <>
       <div className="mb-5 bg-black/20 rounded-2xl p-4 border border-white/5">
@@ -131,30 +153,74 @@ function AttachmentGallery({ ticketId }: { ticketId: string }) {
           <Paperclip className="w-3 h-3" />
           Customer Attachments ({attachments.length})
         </p>
-        <div className="grid grid-cols-3 gap-2">
-          {attachments.map((att, idx) => (
-            <button
-              key={att.id}
-              onClick={() => setPreviewIdx(idx)}
-              className="relative group rounded-xl overflow-hidden bg-slate-800 border border-white/10 aspect-square hover:border-sky-500/50 transition-all"
-            >
-              <img
-                src={attachmentApi.getFullUrl(att.fileUrl)}
-                alt={att.fileName}
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/200x200/0f172a/334155?text=File'; }}
-              />
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Eye className="w-5 h-5 text-white" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          {attachments.map((att: any, idx: number) => {
+            const isImgType = att.fileType === 'IMAGE';
+            const isImgExt = att.fileUrl && /\.(jpg|jpeg|png|webp|gif)$/i.test(att.fileUrl);
+            const isImage = isImgType || isImgExt;
+            
+            const filename = att.fileUrl 
+              ? att.fileUrl.substring(att.fileUrl.lastIndexOf('/') + 1) 
+              : `Attachment-${idx + 1}`;
+
+            return (
+              <div
+                key={att.id}
+                className="relative group rounded-xl overflow-hidden bg-slate-800 border border-white/10 flex flex-col hover:border-sky-500/50 transition-all p-2"
+              >
+                {isImage ? (
+                  <div className="relative aspect-square w-full rounded-lg overflow-hidden mb-2 bg-slate-900">
+                    <img
+                      src={attachmentApi.getFullUrl(att.fileUrl)}
+                      alt={filename}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/200x200/0f172a/334155?text=Image'; }}
+                    />
+                    <button
+                      onClick={() => handleAttachmentClick(att)}
+                      className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg"
+                    >
+                      <Eye className="w-5 h-5 text-white" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative aspect-square w-full rounded-lg bg-sky-500/5 border border-sky-500/10 flex flex-col items-center justify-center p-3 mb-2">
+                    <FileText className="w-10 h-10 text-sky-400 mb-2 shrink-0" />
+                    <span className="text-[10px] font-bold text-slate-300 text-center truncate w-full px-1">
+                      {filename}
+                    </span>
+                    <button
+                      onClick={() => handleAttachmentClick(att)}
+                      className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg"
+                    >
+                      <Eye className="w-5 h-5 text-white" />
+                    </button>
+                  </div>
+                )}
+                
+                <div className="flex justify-between items-center px-1 min-w-0">
+                  <span className="text-[10px] text-slate-400 font-semibold truncate flex-1 pr-2">
+                    {att.description || filename}
+                  </span>
+                  <a
+                    href={attachmentApi.getFullUrl(att.fileUrl)}
+                    download={filename}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-1 hover:bg-white/5 rounded text-slate-500 hover:text-white transition-colors shrink-0"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </a>
+                </div>
               </div>
-            </button>
-          ))}
+            );
+          })}
         </div>
       </div>
 
       {previewIdx !== null && (
         <ImagePreviewModal
-          attachments={attachments}
+          attachments={imageAttachments}
           initialIndex={previewIdx}
           isOpen={true}
           onClose={() => setPreviewIdx(null)}
@@ -206,16 +272,6 @@ export function Tickets() {
     );
   }, [selectedId, doAssign]);
 
-  const handleAutoAssign = useCallback(() => {
-    if (!selectedId || technicians.length === 0) {
-      toast.error("No technicians available for auto-assign.");
-      return;
-    }
-    const available = technicians.filter(t => t.enabled !== false);
-    if (!available.length) { toast.error("No available technicians."); return; }
-    const tech = available[0];
-    handleAssign(tech.userId);
-  }, [selectedId, technicians, handleAssign]);
 
   if (ticketsError) return (
     <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
@@ -249,14 +305,6 @@ export function Tickets() {
               className="w-full bg-[#0f172a]/60 backdrop-blur-md border border-white/10 rounded-xl py-2 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
             />
           </div>
-          <button
-            onClick={handleAutoAssign}
-            disabled={assigning || !selectedId}
-            className="bg-sky-500 hover:bg-sky-400 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-sky-500/20 flex items-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
-          >
-            {assigning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4 fill-white/20" />}
-            Auto Assign
-          </button>
         </div>
       </div>
 
@@ -292,23 +340,23 @@ export function Tickets() {
                             : "bg-white/5 border-white/5 hover:border-white/10"
                         )}
                       >
-                        <div className="flex justify-between items-start mb-2">
-                          <span className={cn("text-xs font-bold uppercase tracking-wider", isSelected ? "text-sky-400" : "text-slate-400")}>
-                            #FE-{id.slice(0, 6)}
+                        <div className="flex justify-between items-center gap-2 mb-2 min-w-0">
+                          <span className={cn("text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap truncate flex-1 min-w-0", isSelected ? "text-sky-400" : "text-slate-400")}>
+                            #FE-{id.slice(0, 8)}
                           </span>
-                          <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-full border", sc.bg, sc.text, sc.border)}>
+                          <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-full border shrink-0 whitespace-nowrap", sc.bg, sc.text, sc.border)}>
                             {ticket.status || 'OPEN'}
                           </span>
                         </div>
-                        <p className="text-sm font-bold text-white line-clamp-2 mb-3 leading-snug">
+                        <p className="text-sm font-bold text-white line-clamp-2 mb-3 leading-snug break-words overflow-hidden">
                           {ticket?.services?.length ? ticket.services.map(s => s?.title || s?.serviceName).join(', ') : ticket?.service?.title || ticket?.description || 'No description'}
                         </p>
-                        <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                          <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                            <MapPin className="w-3 h-3" />
-                            <span className="truncate max-w-[100px]">{ticket.address || 'Unknown'}</span>
+                        <div className="flex items-center justify-between gap-2 pt-3 border-t border-white/5 min-w-0">
+                          <div className="flex items-center gap-1.5 text-xs text-slate-400 min-w-0 flex-1">
+                            <MapPin className="w-3.5 h-3.5 shrink-0 text-sky-400" />
+                            <span className="truncate">{ticket.address || 'Unknown'}</span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-xs font-medium text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md">
+                          <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded-lg shrink-0 whitespace-nowrap">
                             <Clock className="w-3 h-3" />
                             {new Date(ticket.createdAt || Date.now()).toLocaleDateString()}
                           </div>
@@ -329,114 +377,257 @@ export function Tickets() {
         </div>
 
         {/* CENTER: Ticket Details */}
-        <div className="lg:col-span-5 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+        <div className="lg:col-span-5 flex flex-col bg-[#0f172a]/40 backdrop-blur-sm border border-white/5 rounded-[2rem] overflow-hidden">
           {selectedTicket ? (
-            <div className="bg-[#0f172a]/40 backdrop-blur-sm border border-white/5 rounded-[2.5rem] p-6 relative overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden relative">
+              {/* Pulse background decoration */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-sky-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
 
-              {/* Header */}
-              <div className="flex justify-between items-start mb-5">
-                <div>
-                  <h3 className="text-xl font-bold text-white mb-1">
-                    {selectedTicket?.services?.length ? selectedTicket.services.map(s => s?.title || s?.serviceName).join(', ') : selectedTicket?.service?.title || 'Ticket Detail'}
+              <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-4">
+                {/* Premium Header */}
+                <div className="flex flex-col gap-2.5 pb-4 mb-4 border-b border-white/5">
+                  <div className="flex justify-between items-center gap-4">
+                    {/* Ticket ID Glass Badge */}
+                    <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-sky-500/10 border border-sky-500/20 rounded-lg">
+                      <FileText className="w-3 h-3 text-sky-400 shrink-0" />
+                      <span className="text-[10px] font-mono font-extrabold text-sky-400 tracking-wider whitespace-nowrap">
+                        TICKET #FE-{selectedId?.slice(0, 8)}
+                      </span>
+                    </div>
+
+                    {/* Status Badge with Live Pulsing Dot */}
+                    <div className={cn(
+                      "flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold border uppercase tracking-wider whitespace-nowrap shadow-sm shadow-black/10",
+                      (statusColors[selectedTicket.status || 'OPEN'] || statusColors['OPEN']).bg,
+                      (statusColors[selectedTicket.status || 'OPEN'] || statusColors['OPEN']).text,
+                      (statusColors[selectedTicket.status || 'OPEN'] || statusColors['OPEN']).border
+                    )}>
+                      <span className={cn(
+                        "w-1.5 h-1.5 rounded-full animate-pulse",
+                        selectedTicket.status === 'COMPLETED' ? "bg-emerald-400" :
+                        selectedTicket.status === 'CANCELLED' ? "bg-red-400" :
+                        selectedTicket.status === 'IN_PROGRESS' ? "bg-amber-400" : "bg-sky-400"
+                      )} />
+                      {selectedTicket.status || 'OPEN'}
+                    </div>
+                  </div>
+
+                  {/* Service/Ticket Title */}
+                  <h3 className="text-base font-extrabold text-white leading-snug tracking-tight mt-0.5">
+                    {selectedTicket?.services?.length 
+                      ? selectedTicket.services.map(s => s?.title || s?.serviceName).join(', ') 
+                      : selectedTicket?.service?.title || 'Ticket Details'}
                   </h3>
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-sky-400 font-bold">#FE-{selectedId?.slice(0, 6)}</span>
-                    <span className="text-slate-500">·</span>
-                    <span className="text-slate-400">{new Date(selectedTicket.createdAt || Date.now()).toLocaleString()}</span>
+
+                  {/* Date & Time Metadata */}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-slate-400 font-semibold">
+                    <div className="flex items-center gap-1 whitespace-nowrap">
+                      <Clock className="w-3 h-3 text-sky-400/80" />
+                      <span className="text-slate-300">
+                        {new Date(selectedTicket.createdAt || Date.now()).toLocaleDateString(undefined, { 
+                          weekday: 'short', 
+                          year: 'numeric', 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })}
+                      </span>
+                    </div>
+                    <span className="text-slate-700 hidden sm:inline">•</span>
+                    <div className="flex items-center gap-1 whitespace-nowrap">
+                      <Clock className="w-3 h-3 text-indigo-400/80" />
+                      <span className="text-slate-300">
+                        {new Date(selectedTicket.createdAt || Date.now()).toLocaleTimeString(undefined, { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </span>
+                    </div>
+                    {selectedTicket.priority && (
+                      <>
+                        <span className="text-slate-700 hidden sm:inline">•</span>
+                        <span className="px-1.5 py-0.5 bg-red-500/10 border border-red-500/20 text-[9px] font-extrabold text-red-400 rounded-md uppercase tracking-wide">
+                          {selectedTicket.priority}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
-                <span className={cn("px-3 py-1.5 rounded-xl text-xs font-bold border",
-                  (statusColors[selectedTicket.status] || statusColors['OPEN']).bg,
-                  (statusColors[selectedTicket.status] || statusColors['OPEN']).text,
-                  (statusColors[selectedTicket.status] || statusColors['OPEN']).border
-                )}>
-                  {selectedTicket.status || 'OPEN'}
-                </span>
-              </div>
 
-              {/* Description */}
-              <div className="bg-black/20 rounded-2xl p-4 border border-white/5 mb-4">
-                <p className="text-[10px] font-bold uppercase text-slate-500 mb-1">Description</p>
-                <p className="text-sm text-slate-300">{selectedTicket.description || 'No description provided'}</p>
-              </div>
+                {/* Description */}
+                <div className="bg-black/20 backdrop-blur-md rounded-xl p-4 border border-white/5 mb-4 relative group overflow-hidden">
+                  <div className="absolute top-0 left-0 w-[3px] h-full bg-gradient-to-b from-sky-500/50 to-indigo-500/50 opacity-60" />
+                  <p className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1.5">
+                    <FileText className="w-3 h-3 text-sky-400" />
+                    Customer Brief & Requirements
+                  </p>
+                  <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                    {selectedTicket.description || 'No specific requirements or instructions provided by the customer.'}
+                  </p>
+                </div>
 
-              {/* Services & Pricing */}
-              {selectedTicket.services?.length > 0 && (
-                <div className="bg-black/20 rounded-2xl p-4 border border-white/5 mb-4 space-y-3">
-                  <p className="text-[10px] font-bold uppercase text-slate-500">Services</p>
-                  {selectedTicket.services.map((s, i) => (
-                    <div key={i} className="flex justify-between items-center bg-white/5 p-3 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        {s.imageUrl
-                          ? <img src={s.imageUrl} alt={s.serviceName} className="w-10 h-10 rounded-lg object-cover bg-slate-800" />
-                          : <div className="w-10 h-10 rounded-lg bg-sky-500/20 flex items-center justify-center"><Zap className="w-5 h-5 text-sky-500" /></div>
-                        }
-                        <div>
-                          <p className="text-sm font-bold text-white">{s?.title || s?.serviceName}</p>
-                          {s.description && <p className="text-xs text-slate-400 line-clamp-1">{s.description}</p>}
+                {/* Services & Billing Breakdown */}
+                {selectedTicket.services?.length > 0 && (
+                  <div className="bg-black/20 backdrop-blur-md rounded-xl p-4 border border-white/5 mb-4 space-y-3">
+                    <p className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                      <Zap className="w-3 h-3 text-amber-400" />
+                      Requested Services
+                    </p>
+                    <div className="space-y-2">
+                      {selectedTicket.services.map((s, i) => (
+                        <div key={i} className="flex justify-between items-center bg-white/5 border border-white/[0.02] p-2.5 rounded-lg hover:bg-white/[0.06] transition-all group">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            {s.imageUrl ? (
+                              <img src={s.imageUrl} alt={s.serviceName} className="w-9 h-9 rounded-lg object-cover bg-slate-800 border border-white/10 shrink-0" />
+                            ) : (
+                              <div className="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                                <Zap className="w-4 h-4 text-sky-400" />
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-white group-hover:text-sky-400 transition-colors truncate">{s?.title || s?.serviceName}</p>
+                              {s.description && (
+                                <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{s.description}</p>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-xs font-bold text-white shrink-0 font-mono pl-3">₹{s.price ?? 0}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex justify-between items-center pt-3 border-t border-white/10">
+                      <p className="text-xs font-bold text-slate-400">Total Billing Amount</p>
+                      <div className="flex items-center gap-1 px-2.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                        <span className="text-[9px] font-bold text-emerald-400/80">INR</span>
+                        <span className="text-sm font-extrabold text-emerald-400 font-mono">₹{selectedTicket.totalAmount ?? 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Customer & Address Details */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  {/* Customer Info Card */}
+                  <div className="bg-black/20 backdrop-blur-md rounded-xl p-4 border border-white/5 hover:border-white/10 transition-colors flex flex-col justify-between min-h-[140px]">
+                    <div>
+                      <p className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 mb-2.5 flex items-center gap-1.5">
+                        <User className="w-3 h-3 text-purple-400" />
+                        Client Details
+                      </p>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
+                          <User className="w-4 h-4 text-purple-400" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-white truncate" title={selectedTicket?.customer?.name || selectedTicket?.customer?.username || 'Guest Client'}>
+                            {selectedTicket?.customer?.name || selectedTicket?.customer?.username || 'Guest Client'}
+                          </p>
+                          <p className="text-[10px] text-slate-400 truncate mt-0.5" title={selectedTicket?.customer?.email}>
+                            {selectedTicket?.customer?.email || 'No email registered'}
+                          </p>
                         </div>
                       </div>
-                      <p className="text-sm font-bold text-sky-400 shrink-0">₹{s.price ?? 0}</p>
                     </div>
-                  ))}
-
-                  <div className="flex justify-between items-center pt-3 border-t border-white/10">
-                    <p className="text-sm font-bold text-slate-400">Total</p>
-                    <p className="text-lg font-bold text-white">₹{selectedTicket.totalAmount ?? 0}</p>
+                    
+                    <div className="mt-3 pt-2.5 border-t border-white/5 flex flex-col gap-0.5">
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Contact Phone</span>
+                      {selectedTicket.customer?.phoneNumber ? (
+                        <a 
+                          href={`tel:${selectedTicket.customer.phoneNumber}`}
+                          className="text-xs font-bold text-sky-400 hover:text-sky-300 transition-colors flex items-center gap-1 shrink-0"
+                        >
+                          <Phone className="w-3 h-3 text-sky-400" />
+                          <span>{selectedTicket.customer.phoneNumber}</span>
+                        </a>
+                      ) : (
+                        <span className="text-xs font-medium text-slate-500">Not Available</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
 
-              {/* Customer & Address */}
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="bg-black/20 rounded-2xl p-4 border border-white/5">
-                  <p className="text-[10px] font-bold uppercase text-slate-500 mb-2">Customer</p>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center"><User className="w-4 h-4 text-purple-400" /></div>
+                  {/* Location Info Card */}
+                  <div className="bg-black/20 backdrop-blur-md rounded-xl p-4 border border-white/5 hover:border-white/10 transition-colors flex flex-col justify-between min-h-[140px]">
                     <div>
-                      <p className="text-sm font-bold text-white">{selectedTicket?.customer?.name || selectedTicket?.customer?.username || 'Unknown'}</p>
-                      <p className="text-xs text-slate-400 flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        {selectedTicket.customer?.phoneNumber || 'N/A'}
+                      <p className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 mb-2.5 flex items-center gap-1.5">
+                        <MapPin className="w-3 h-3 text-emerald-400" />
+                        Service Location
                       </p>
+                      <div className="flex items-start gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                          <Navigation className="w-4 h-4 text-emerald-400" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs text-slate-300 font-medium leading-relaxed break-words line-clamp-3" title={selectedTicket.address}>
+                            {selectedTicket.address || 'No service address provided'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-3 pt-2.5 border-t border-white/5 flex flex-col gap-0.5">
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Coordinates</span>
+                      {selectedTicket.address ? (
+                        <a 
+                          href={`https://maps.google.com/?q=${encodeURIComponent(selectedTicket.address)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1 shrink-0"
+                        >
+                          <MapPin className="w-3 h-3 text-emerald-400" />
+                          <span>Open Google Maps</span>
+                        </a>
+                      ) : (
+                        <span className="text-xs font-medium text-slate-500">Not Available</span>
+                      )}
                     </div>
                   </div>
                 </div>
-                <div className="bg-black/20 rounded-2xl p-4 border border-white/5">
-                  <p className="text-[10px] font-bold uppercase text-slate-500 mb-2">Location</p>
-                  <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
-                    <p className="text-sm text-slate-200 leading-snug">{selectedTicket.address || 'N/A'}</p>
+
+                {/* Assigned Technician */}
+                {selectedTicket.assignedTechnician && (
+                  <div className="bg-purple-500/5 border border-purple-500/15 rounded-xl p-4 mb-4 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl pointer-events-none" />
+                    <p className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 mb-2.5 flex items-center gap-1.5">
+                      <User className="w-3 h-3 text-purple-400" />
+                      Assigned Field Specialist
+                    </p>
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="relative shrink-0">
+                          <img
+                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedTicket.assignedTechnician.username}`}
+                            className="w-10 h-10 rounded-lg bg-slate-800 border border-purple-500/20 object-cover"
+                            alt={selectedTicket.assignedTechnician.username}
+                          />
+                          <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-[#0f172a]" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-white group-hover:text-purple-400 transition-colors">
+                            {selectedTicket?.technician?.name || selectedTicket?.assignedTechnician?.username}
+                          </p>
+                          <p className="text-[10px] text-purple-400/90 font-medium truncate mt-0.5">
+                            {selectedTicket.assignedTechnician.email}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                        <span className="px-2.5 py-0.5 bg-purple-500/10 border border-purple-500/25 text-[9px] font-extrabold text-purple-400 rounded-lg tracking-wider uppercase">
+                          Active Dispatch
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Attachments */}
+                <AttachmentGallery ticketId={selectedId!} />
               </div>
-
-              {/* Assigned Technician */}
-              {selectedTicket.assignedTechnician && (
-                <div className="bg-purple-500/5 border border-purple-500/20 rounded-2xl p-4 mb-4">
-                  <p className="text-[10px] font-bold uppercase text-slate-500 mb-2">Assigned Technician</p>
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedTicket.assignedTechnician.username}`}
-                      className="w-10 h-10 rounded-xl bg-slate-800"
-                      alt={selectedTicket.assignedTechnician.username}
-                    />
-                    <div>
-                      <p className="text-sm font-bold text-white">{selectedTicket?.technician?.name || selectedTicket?.assignedTechnician?.username}</p>
-                      <p className="text-xs text-purple-400">{selectedTicket.assignedTechnician.email}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Attachments */}
-              <AttachmentGallery ticketId={selectedId!} />
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center border border-white/5 rounded-[2.5rem] bg-[#0f172a]/20 min-h-[300px]">
-              <ImageIcon className="w-16 h-16 text-slate-600 mb-4 opacity-50" />
-              <p className="text-slate-400 font-medium">Select a ticket to view details</p>
+            <div className="flex-1 flex flex-col items-center justify-center bg-[#0f172a]/20 min-h-[300px] p-6 text-center">
+              <ImageIcon className="w-12 h-12 text-slate-600 mb-3 opacity-40 animate-pulse" />
+              <p className="text-slate-400 text-xs font-semibold">Select a ticket to view details</p>
             </div>
           )}
         </div>

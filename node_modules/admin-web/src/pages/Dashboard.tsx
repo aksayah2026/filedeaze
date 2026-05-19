@@ -21,7 +21,7 @@ import {
   Tooltip, 
   ResponsiveContainer,
 } from 'recharts';
-import { useDashboardStats } from "../hooks/useDashboard";
+import { useDashboardStats, useLiveActivity } from "../hooks/useDashboard";
 
 const data = [
   { name: 'Mon', value: 4000 },
@@ -68,8 +68,12 @@ const stats = [
   },
 ];
 
+import { useState } from 'react';
+
 export function Dashboard() {
-  const { data: statsData, isLoading } = useDashboardStats();
+  const [range, setRange] = useState('30d');
+  const { data: statsData, isLoading } = useDashboardStats(range);
+  const { data: liveActivityData } = useLiveActivity();
 
   const stats = [
     {
@@ -89,8 +93,8 @@ export function Dashboard() {
       bg: "bg-purple-500/10"
     },
     {
-      title: "SLA Compliance",
-      value: "98.2%",
+      title: "Completed Jobs",
+      value: statsData?.completedTickets || 0,
       trend: "+0.4%",
       icon: CheckCircle2,
       color: "text-emerald-500",
@@ -130,14 +134,19 @@ export function Dashboard() {
           <p className="text-slate-400 font-medium">Monitoring fleet performance and customer satisfaction across all zones.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm font-semibold text-slate-300 hover:bg-white/10 transition-all">
-            <Calendar className="w-4 h-4" />
-            Last 30 Days
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm font-semibold text-slate-300 hover:bg-white/10 transition-all">
-            <Filter className="w-4 h-4" />
-            Filters
-          </button>
+          <div className="relative">
+            <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <select
+              value={range}
+              onChange={(e) => setRange(e.target.value)}
+              className="pl-10 pr-8 py-2 bg-white/5 border border-white/10 rounded-xl text-sm font-semibold text-slate-300 hover:bg-white/10 transition-all appearance-none outline-none focus:border-sky-500/50"
+            >
+              <option value="7d" className="bg-[#0f172a]">Last 7 Days</option>
+              <option value="30d" className="bg-[#0f172a]">Last 30 Days</option>
+              <option value="90d" className="bg-[#0f172a]">Last 90 Days</option>
+              <option value="year" className="bg-[#0f172a]">This Year</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -188,42 +197,48 @@ export function Dashboard() {
           </div>
           <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{fill: '#64748b', fontSize: 12}}
-                  dy={10}
-                />
-                <YAxis 
-                  hide={true}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#030712', 
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '16px',
-                    padding: '12px'
-                  }}
-                  itemStyle={{ color: '#fff' }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#0ea5e9" 
-                  strokeWidth={3}
-                  fillOpacity={1} 
-                  fill="url(#chartGradient)" 
-                />
-              </AreaChart>
+              {chartData.length > 0 ? (
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                  <XAxis 
+                    dataKey="name" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{fill: '#64748b', fontSize: 12}}
+                    dy={10}
+                  />
+                  <YAxis 
+                    hide={true}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#030712', 
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '16px',
+                      padding: '12px'
+                    }}
+                    itemStyle={{ color: '#fff' }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="#0ea5e9" 
+                    strokeWidth={3}
+                    fillOpacity={1} 
+                    fill="url(#chartGradient)" 
+                  />
+                </AreaChart>
+              ) : (
+                <div className="flex items-center justify-center h-full text-slate-500 text-sm">
+                  No revenue data available for this period.
+                </div>
+              )}
             </ResponsiveContainer>
           </div>
         </div>
@@ -235,20 +250,26 @@ export function Dashboard() {
             <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
           </div>
           <div className="space-y-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex gap-4 group">
+            {liveActivityData && liveActivityData.length > 0 ? liveActivityData.map((event) => (
+              <div key={event.id} className="flex gap-4 group">
                 <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center shrink-0 group-hover:border-sky-500/40 transition-all">
                   <Activity className="w-5 h-5 text-sky-500" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start">
-                    <p className="text-sm font-bold text-white truncate">New dispatch #FE-92{i}</p>
-                    <span className="text-[10px] text-slate-500 font-bold uppercase shrink-0">2m ago</span>
+                    <p className="text-sm font-bold text-white truncate">{event.type.replace(/_/g, ' ')}</p>
+                    <span className="text-[10px] text-slate-500 font-bold uppercase shrink-0">
+                      {new Date(event.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1 line-clamp-1">Technician assigned to AC Maintenance at Sector 4.</p>
+                  <p className="text-xs text-slate-400 mt-1 line-clamp-1">{event.message}</p>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="text-center text-slate-500 py-10">
+                <p className="text-sm font-medium">No recent activities</p>
+              </div>
+            )}
           </div>
           <button className="mt-8 w-full py-4 bg-white/5 border border-white/5 rounded-2xl text-sm font-bold text-slate-300 hover:bg-white/10 transition-all">
             View All Reports

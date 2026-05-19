@@ -7,6 +7,7 @@ import { ticketService } from "@/services/ticketService";
 import { extractApiData } from "@/lib/utils";
 import { Loader2, ArrowLeft, Mail, Phone, MapPin, Clock, Star, Shield, Calendar, Activity } from "lucide-react";
 import { EditTechnicianModal } from "../components/technician/EditTechnicianModal";
+import axiosInstance from "@/api/axiosInstance";
 
 export function TechnicianProfile() {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +15,14 @@ export function TechnicianProfile() {
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   const { data: response, isLoading: techLoading } = useQuery(['technician', id], () => technicianApi.getDetails(id!), {
+    enabled: !!id
+  });
+
+  const { data: statsResponse, isLoading: statsLoading } = useQuery(['technicianStats', id], async () => {
+    const response = await axiosInstance.get(`/technician/${id}/stats`);
+    console.log("Technician Stats API Response:", response.data);
+    return response.data;
+  }, {
     enabled: !!id
   });
 
@@ -28,6 +37,8 @@ export function TechnicianProfile() {
       ticket?.assignedTechnicianId === id || 
       ticket?.assignedTechnicianId === technician?.userId
   );
+
+  const stats = statsResponse?.data || statsResponse;
 
   if (techLoading || ticketsLoading) {
     return (
@@ -145,15 +156,35 @@ export function TechnicianProfile() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-5">
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Total Jobs</p>
-              <p className="text-2xl font-bold text-white">{tickets.length}</p>
+              {statsLoading ? (
+                <div className="h-8 flex items-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-sky-500" />
+                </div>
+              ) : (
+                <p className="text-2xl font-bold text-white">{stats?.totalAssignedBookings ?? 0}</p>
+              )}
             </div>
             <div className="bg-[#0f172a]/40 border border-emerald-500/20 rounded-2xl p-5">
               <p className="text-[10px] font-bold text-emerald-500/70 uppercase tracking-wider mb-2">Completed</p>
-              <p className="text-2xl font-bold text-emerald-400">{tickets.filter(t => t.status === 'COMPLETED').length}</p>
+              {statsLoading ? (
+                <div className="h-8 flex items-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
+                </div>
+              ) : (
+                <p className="text-2xl font-bold text-emerald-400">{stats?.completedServices ?? 0}</p>
+              )}
             </div>
             <div className="bg-[#0f172a]/40 border border-sky-500/20 rounded-2xl p-5">
               <p className="text-[10px] font-bold text-sky-500/70 uppercase tracking-wider mb-2">Active/Assigned</p>
-              <p className="text-2xl font-bold text-sky-400">{tickets.filter(t => t.status !== 'COMPLETED' && t.status !== 'CANCELLED').length}</p>
+              {statsLoading ? (
+                <div className="h-8 flex items-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-sky-400" />
+                </div>
+              ) : (
+                <p className="text-2xl font-bold text-sky-400">
+                  {(stats?.inProgressServices ?? 0) + (stats?.pendingServices ?? 0)}
+                </p>
+              )}
             </div>
             <div className="bg-[#0f172a]/40 border border-amber-500/20 rounded-2xl p-5">
               <p className="text-[10px] font-bold text-amber-500/70 uppercase tracking-wider mb-2">Rating</p>

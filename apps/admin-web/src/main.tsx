@@ -68,12 +68,10 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <App />
         <Toaster position="top-right" />
       </QueryClientProvider>
-    </ErrorBoundary>
-  </React.StrictMode>,
+    </ErrorBoundary>,
 )

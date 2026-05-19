@@ -43,8 +43,8 @@ export const useNotifications = () => {
   );
 
   return {
-    notifications,
-    unreadCount: notifications.filter((n: any) => !n.read).length,
+    notifications: notifications || [],
+    unreadCount: (notifications || []).filter((n: any) => !n.read).length,
     markAsRead: markAsReadMutation.mutate,
   };
 };

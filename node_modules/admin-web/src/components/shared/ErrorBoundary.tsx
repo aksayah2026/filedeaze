@@ -22,7 +22,8 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Uncaught error:", error, errorInfo);
+    console.error("REACT RUNTIME ERROR:", error);
+    console.error("ERROR INFO STACK:", errorInfo.componentStack);
   }
 
   public render() {
