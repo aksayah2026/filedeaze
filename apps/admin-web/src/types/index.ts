@@ -1,10 +1,11 @@
-export type UserRole = 'ADMIN' | 'TECHNICIAN' | 'CUSTOMER' | 'MANAGER' | 'SUPER_ADMIN';
+export type UserRole = 'ADMIN' | 'TECHNICIAN' | 'CUSTOMER' | 'MANAGER' | 'SUPER_ADMIN' | 'SUPERVISOR';
 
 export interface User {
   userId: string;
   username: string;
   email: string;
   role: UserRole;
+  tenantId?: string;
   phoneNumber?: string;
   phone?: string;
   enabled?: boolean;

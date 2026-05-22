@@ -14,25 +14,26 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-
-const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-  { icon: Ticket, label: "Tickets", path: "/tickets" },
-  { icon: UserSquare2, label: "Technicians", path: "/technicians" },
-  { icon: Users, label: "Customers", path: "/customers" },
-  { icon: Map, label: "Live Tracking", path: "/tracking" },
-  { icon: BarChart3, label: "Analytics", path: "/analytics" },
-];
-
-const bottomItems = [
-  { icon: Settings, label: "Settings", path: "/settings" },
-];
-
 import { useAuthStore } from "@/store/authStore";
 
 export function Sidebar() {
   const location = useLocation();
   const { user, logout } = useAuthStore();
+  const role = user?.role?.toUpperCase();
+  const prefix = role === 'SUPERVISOR' || role === 'MANAGER' ? '/supervisor' : '/admin';
+
+  const menuItems = [
+    { icon: LayoutDashboard, label: "Dashboard", path: `${prefix}/dashboard` },
+    { icon: Ticket, label: "Tickets", path: `${prefix}/tickets` },
+    { icon: UserSquare2, label: "Technicians", path: `${prefix}/technicians` },
+    { icon: Users, label: "Customers", path: `${prefix}/customers` },
+    { icon: Map, label: "Live Tracking", path: `${prefix}/tracking` },
+    { icon: BarChart3, label: "Analytics", path: `${prefix}/analytics` },
+  ];
+
+  const bottomItems = [
+    { icon: Settings, label: "Settings", path: `${prefix}/settings` },
+  ];
 
   return (
     <div className="w-72 flex flex-col h-full bg-[#030712] border-r border-white/5 z-50">

@@ -17,8 +17,18 @@ export function Login() {
   // If already authenticated, redirect immediately
   useEffect(() => {
     if (isAuthenticated) {
-      console.log('[Login] Already authenticated, redirecting to /');
-      navigate('/', { replace: true });
+      const state = useAuthStore.getState();
+      const role = state.user?.role?.toUpperCase();
+      console.log('[Login] Already authenticated, redirecting...', role);
+      if (role === 'SUPER_ADMIN') {
+        navigate('/super-admin/dashboard', { replace: true });
+      } else if (role === 'ADMIN') {
+        navigate('/admin/dashboard', { replace: true });
+      } else if (role === 'SUPERVISOR' || role === 'MANAGER') {
+        navigate('/supervisor/dashboard', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     }
   }, [isAuthenticated, navigate]);
 
@@ -29,10 +39,25 @@ export function Login() {
 
     try {
       console.log('[Login] Submitting credentials...');
-      await authService.login({ email: email.trim(), password });
-      console.log('[Login] Login successful, navigating to /');
+      const response = await authService.login({ email: email.trim(), password });
+      console.log('[Login] Login successful, navigating...');
       toast.success('Welcome back!');
-      navigate('/', { replace: true });
+      
+      const role = response.user?.role?.toUpperCase();
+      console.log('[Login Redirect Logic] userRole detected:', role);
+      if (role === 'SUPER_ADMIN') {
+        console.log('[Login Redirect Logic] Navigating to /super-admin/dashboard');
+        navigate('/super-admin/dashboard', { replace: true });
+      } else if (role === 'ADMIN') {
+        console.log('[Login Redirect Logic] Navigating to /admin/dashboard');
+        navigate('/admin/dashboard', { replace: true });
+      } else if (role === 'SUPERVISOR' || role === 'MANAGER') {
+        console.log('[Login Redirect Logic] Navigating to /supervisor/dashboard');
+        navigate('/supervisor/dashboard', { replace: true });
+      } else {
+        console.log('[Login Redirect Logic] Navigating to /');
+        navigate('/', { replace: true });
+      }
     } catch (error: any) {
       const msg = error.message || 'Login failed. Please try again.';
       console.error('[Login] Login error:', msg);

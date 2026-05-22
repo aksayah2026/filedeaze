@@ -7,8 +7,10 @@ interface AuthState {
   token: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
+  isHydrated: boolean;
   setAuth: (user: User, token: string, refreshToken?: string) => void;
   logout: () => void;
+  setHydrated: (val: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -18,6 +20,7 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       refreshToken: null,
       isAuthenticated: false,
+      isHydrated: false,
 
       setAuth: (user, token, refreshToken) => {
         console.log('[AuthStore] setAuth called — user:', user?.username, '| role:', user?.role);
@@ -31,14 +34,22 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         console.log('[AuthStore] Logging out');
+        console.trace('[AuthStore Trace] LOGOUT TRIGGERED');
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         set({ user: null, token: null, refreshToken: null, isAuthenticated: false });
         window.location.href = '/login';
       },
+
+      setHydrated: (val) => set({ isHydrated: val }),
     }),
     {
       name: 'auth-storage',
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.setHydrated(true);
+        }
+      },
       // Only persist these keys — token state syncs with localStorage separately
       partialize: (state) => ({
         user: state.user,
